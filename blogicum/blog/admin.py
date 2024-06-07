@@ -1,8 +1,6 @@
 from django.contrib import admin
 
-from .models import Category
-from .models import Location
-from .models import Post
+from .models import Category, Comment, Location, Post
 
 
 @admin.register(Post)
@@ -51,4 +49,22 @@ class LocationAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id',)
     list_editable = ('name',)
+    empty_value_display = 'Не задано'
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    search_fields = ('text',)
+    list_display = (
+        'id',
+        'text',
+        'post',
+        'created_at',
+        'author',
+    )
+    list_display_links = ('id',)
+    list_editable = (
+        'text',
+        'author',
+    )
     empty_value_display = 'Не задано'

@@ -1,19 +1,13 @@
-from django.db import models
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.db import models
 from django.urls import reverse
-from django.utils import timezone
+
+from .managers import NewPostManager
 
 User = get_user_model()
 
-
-class CustomPostManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(
-            is_published=True,
-            pub_date__lte=timezone.now(),
-            category__is_published=True,
-        )
+PRE_TEXT_LEN: int = 25
 
 
 class BaseBlogModel(models.Model):
@@ -42,11 +36,11 @@ class Category(BaseBlogModel):
     slug = models.SlugField(
         unique=True,
         verbose_name='Идентификатор',
-        help_text=('Идентификатор страницы для URL;'
-
-                   ' разрешены символы латиницы,'
-
-                   ' цифры, дефис и подчёркивание.')
+        help_text=(
+            'Идентификатор страницы для URL;'
+            ' разрешены символы латиницы,'
+            ' цифры, дефис и подчёркивание.'
+        )
     )
 
     class Meta:
@@ -54,7 +48,7 @@ class Category(BaseBlogModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return self.title
+        return f'{ self.title[:PRE_TEXT_LEN] }'
 
 
 class Location(BaseBlogModel):
@@ -68,7 +62,7 @@ class Location(BaseBlogModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.name
+        return f'{ self.name[:PRE_TEXT_LEN] }'
 
 
 class Post(BaseBlogModel):
@@ -77,12 +71,14 @@ class Post(BaseBlogModel):
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
         help_text=('Если установить дату и время в будущем'
-                   ' — можно делать отложенные публикации.')
+                   ' — можно делать отложенные публикации.'
+        )
     )
     title = models.CharField(
         verbose_name='Заголовок',
         max_length=settings.MAXLENGTH,
-        blank=True)
+        blank=True
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -93,6 +89,7 @@ class Post(BaseBlogModel):
         Location,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         verbose_name='Местоположение',
         related_name='posts',
     )
@@ -111,18 +108,18 @@ class Post(BaseBlogModel):
     )
 
     objects = models.Manager()
-    custom_manager = CustomPostManager()
+    custom_manager = NewPostManager()
 
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
         ordering = ('-pub_date', )
 
+    def __str__(self):
+        return f'{ self.title[:PRE_TEXT_LEN] }'
+
     def get_absolute_url(self):
         return reverse('blog:post_detail', kwargs={"post_id": self.pk})
-
-    def __str__(self):
-        return self.title
 
 
 class Comment(models.Model):
@@ -145,4 +142,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.text
+        return '{0} ({1})'.format(self.post, self.author)
