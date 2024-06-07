@@ -71,8 +71,7 @@ class Post(BaseBlogModel):
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
         help_text=('Если установить дату и время в будущем'
-                   ' — можно делать отложенные публикации.'
-        )
+                   ' — можно делать отложенные публикации.')
     )
     title = models.CharField(
         verbose_name='Заголовок',

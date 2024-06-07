@@ -66,7 +66,7 @@ def get_profile(request, username):
         ).annotate(
             comment_count=Count('comments')
         ).filter(
-            pub_date__lte=timezone.now(), 
+            pub_date__lte=timezone.now(),
             is_published=True
         ).order_by('-pub_date')
 
