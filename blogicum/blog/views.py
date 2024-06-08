@@ -39,9 +39,7 @@ class CategoryListView(ListView):
         return context
 
     def get_queryset(self):
-        page_obj = Post.custom_manager.select_related(
-            'category'
-        ).filter(
+        page_obj = get_posts(Post).filter(
             category=self.get_object(),
         ).annotate(
             comment_count=Count('comments')
@@ -58,16 +56,11 @@ def get_profile(request, username):
     ).annotate(
         comment_count=Count('comments')
     ).order_by('-pub_date')
-    if not request.user.is_authenticated:
-        user_posts = profile.posts.select_related(
-            'author',
-            'category',
-            'location',
-        ).annotate(
+    if request.user != profile:
+        user_posts = get_posts(Post).annotate(
             comment_count=Count('comments')
         ).filter(
-            pub_date__lte=timezone.now(),
-            is_published=True
+            author=profile,
         ).order_by('-pub_date')
 
     paginator = Paginator(user_posts, PAGINATOR)
@@ -83,28 +76,23 @@ def get_profile(request, username):
 
 @login_required
 def edit_profile(request):
-    form = ProfileEditForm(request.POST, instance=request.user)
+    form = ProfileEditForm(request.POST or None, instance=request.user)
     if form.is_valid():
         form.save()
         return redirect('blog:index')
-    else:
-        form = ProfileEditForm(instance=request.user)
-        return render(request, 'blog/user.html', {'form': form})
+    return render(request, 'blog/user.html', {'form': form})
 
 
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    form = CommentForm(request.POST)
+    form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
         comment.post = post
         comment.save()
         return redirect('blog:post_detail', post_id=post_id)
-    else:
-        form = CommentForm()
-
     return render(request, 'blog/detail.html', {'form': form, 'post': post})
 
 
@@ -135,7 +123,7 @@ class PostDetailView(DetailView):
         if post.author == self.request.user:
             return post
         return get_object_or_404(
-            Post.custom_manager, id=self.kwargs[self.pk_url_kwarg]
+            Post.published_manager, id=self.kwargs[self.pk_url_kwarg]
         )
 
     def get_context_data(self, **kwargs):
@@ -156,8 +144,6 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
-        post = form.save(commit=False)
-        post.save()
         return super().form_valid(form)
 
     def get_success_url(self):

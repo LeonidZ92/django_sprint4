@@ -3,11 +3,10 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
+from .constants import PRE_TEXT_LEN
 from .managers import NewPostManager
 
 User = get_user_model()
-
-PRE_TEXT_LEN: int = 25
 
 
 class BaseBlogModel(models.Model):
@@ -48,7 +47,7 @@ class Category(BaseBlogModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return f'{ self.title[:PRE_TEXT_LEN] }'
+        return self.title[:PRE_TEXT_LEN]
 
 
 class Location(BaseBlogModel):
@@ -62,7 +61,7 @@ class Location(BaseBlogModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return f'{ self.name[:PRE_TEXT_LEN] }'
+        return self.name[:PRE_TEXT_LEN]
 
 
 class Post(BaseBlogModel):
@@ -107,7 +106,7 @@ class Post(BaseBlogModel):
     )
 
     objects = models.Manager()
-    custom_manager = NewPostManager()
+    published_manager = NewPostManager()
 
     class Meta:
         verbose_name = 'публикация'
@@ -115,7 +114,7 @@ class Post(BaseBlogModel):
         ordering = ('-pub_date', )
 
     def __str__(self):
-        return f'{ self.title[:PRE_TEXT_LEN] }'
+        return self.title[:PRE_TEXT_LEN]
 
     def get_absolute_url(self):
         return reverse('blog:post_detail', kwargs={"post_id": self.pk})
@@ -141,4 +140,5 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return '{0} ({1})'.format(self.post, self.author)
+        comment_preview = self.text[:PRE_TEXT_LEN]
+        return f'{self.post} ({self.author}) - "{comment_preview}..."'
